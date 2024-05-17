@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using System.Globalization;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace ErrorNpgsqlJsonb;
@@ -25,32 +26,21 @@ internal class Program
 
         using MyDbContext? dbContext = serviceProvider.GetService<MyDbContext>();
 
-        for (int i = 0; i < 2; i++)
+        dbContext.Add(new MyEntity()
         {
-            dbContext.Add(new MyEntity()
-            {
-                JsonbFields = [
-                    [new() { Key = "key1", Value = "value1"}, new() { Key = "key2", Value = "value2"}],
-                    [new() { Key = "key1", Value = "value1"}, new() { Key = "key2", Value = "value2"}]
-                ]
-            });
+            JsonbFields = [
+                [new() { Key = "key1", Value = "value1"}, new() { Key = "key2", Value = "value2"}],
+                [new() { Key = "key1", Value = "value1"}, new() { Key = "key2", Value = "value2"}]
+            ]
+        });
 
-            dbContext.SaveChanges();
+        dbContext.SaveChanges();
 
-            foreach (MyEntity entity in dbContext.MyEntity)
-            {
-                Console.WriteLine(entity.Id);
+        foreach (MyEntity entity in dbContext.MyEntity)
+        {
+            Console.WriteLine(entity.ToString()); // Castle.Proxies.List`1Proxy ??? System.Collections.Generic.List`1[ErrorNpgsqlJsonb.JsonbField] Ok!!
 
-                foreach (List<JsonbField> innerList in entity.JsonbFields)
-                {
-                    //Console.WriteLine(innerList); // Castle.Proxies.List`1Proxy ???
-
-                    foreach (JsonbField field in innerList) // System.Collections.Generic.List`1[ErrorNpgsqlJsonb.JsonbField] Ok!!
-                    {
-                        Console.WriteLine($"Key: {field.Key}, Value: {field.Value}");
-                    }
-                }
-            }
+            Console.WriteLine(JsonSerializer.Serialize(entity, new JsonSerializerOptions { WriteIndented = true }));
         }
     }
 }
